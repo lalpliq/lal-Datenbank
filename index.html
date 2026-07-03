@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Vorratsdosen-Verwaltung</title>
+<style>
+  :root{
+    --paper:#F2EEE3;
+    --card:#FBF9F3;
+    --ink:#2B2A26;
+    --ink-soft:#6b665c;
+    --forest:#33503F;
+    --forest-dark:#223629;
+    --mustard:#C98A1E;
+    --rust:#8C4234;
+    --line:#DBD3C0;
+    --sage:#A8B79A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:300px;
+    flex-shrink:0;
+    background:var(--forest);
+    color:#EDEEE4;
+    padding:22px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .brand{
+    font-family:Georgia,"Iowan Old Style",serif;
+    font-size:22px;
+    letter-spacing:.3px;
+    line-height:1.15;
+  }
+  .brand .eyebrow{
+    display:block;
+    font-family:-apple-system,sans-serif;
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--sage);
+    margin-bottom:4px;
+  }
+  .btn{
+    border:none;
+    border-radius:7px;
+    padding:9px 14px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:transform .06s ease, opacity .15s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--mustard);color:#2B2205;}
+  .btn-primary:hover{opacity:.92;}
+  .btn-ghost{background:rgba(255,255,255,.1);color:#EDEEE4;}
+  .btn-ghost:hover{background:rgba(255,255,255,.18);}
+  .btn-outline{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .btn-outline:hover{background:#efe9d8;}
+  .btn-danger{background:transparent;color:var(--rust);border:1px solid transparent;}
+  .btn-danger:hover{background:#f1e0dc;}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+  .search{
+    width:100%;
+    padding:8px 10px;
+    border-radius:7px;
+    border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:13px;
+  }
+  .search::placeholder{color:#c8cfc2;}
+  .set-list{
+    list-style:none;
+    margin:0;padding:0;
+    display:flex;flex-direction:column;gap:6px;
+    overflow-y:auto;
+  }
+  .set-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    border:1px solid transparent;
+  }
+  .set-item:hover{background:rgba(255,255,255,.08);}
+  .set-item.active{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.2);}
+  .set-checkbox{
+    width:15px;height:15px;
+    accent-color:var(--mustard);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .multi-select-bar{
+    font-size:12px;
+    color:#dfe3d6;
+  }
+  .msb-row{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+  }
+  .msb-row a{color:#e9d9a6;cursor:pointer;text-decoration:underline;font-size:11.5px;}
+  .msb-hint{color:#aab4a0;font-size:11.5px;line-height:1.4;margin-bottom:2px;}
+  .set-code{
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace;
+    font-size:11px;
+    background:rgba(0,0,0,.22);
+    color:var(--mustard);
+    padding:3px 6px;
+    border-radius:4px;
+    letter-spacing:.5px;
+    flex-shrink:0;
+  }
+  .set-name{font-size:13.5px;line-height:1.3;}
+  .set-name small{display:block;color:#c8cfc2;font-size:11px;}
+  .sidebar-footer{
+    margin-top:auto;
+    font-size:11px;
+    color:#b7c0ab;
+    padding-top:10px;
+    border-top:1px solid rgba(255,255,255,.12);
+  }
+  .sidebar-footer a{color:#e9d9a6;cursor:pointer;text-decoration:underline;}
+
+  /* ---------- Main ---------- */
+  .main{
+    flex:1;
+    padding:34px 40px;
+    max-width:920px;
+  }
+  .empty-state{
+    margin-top:60px;
+    text-align:center;
+    color:var(--ink-soft);
+  }
+  .empty-state h2{
+    font-family:Georgia,serif;
+    font-weight:normal;
+    color:var(--forest-dark);
+  }
+  .set-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:22px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .field label{
+    font-size:10.5px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  input, select{
+    font-family:inherit;
+    font-size:14px;
+    padding:7px 9px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus, select:focus{outline:2px solid var(--sage);outline-offset:1px;}
+  .set-title-block .field input{
+    font-family:Georgia,serif;
+    font-size:20px;
+    padding:6px 4px;
+    border:none;
+    background:transparent;
+    border-bottom:2px solid var(--line);
+    border-radius:0;
+    min-width:280px;
+  }
+  .set-title-block .field input:focus{outline:none;border-bottom-color:var(--forest);}
+  .row-inline{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .row-inline .field input{width:150px;}
+
+  h3.section-title{
+    font-family:Georgia,serif;
+    font-weight:normal;
+    color:var(--forest-dark);
+    font-size:18px;
+    margin:26px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  h3.section-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+
+  .dose-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    position:relative;
+  }
+  .dose-card::before{
+    content:"";
+    position:absolute;
+    top:-1px;left:16px;
+    width:26px;height:8px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-top:none;
+    border-radius:0 0 6px 6px;
+  }
+  .dose-head-field{
+    max-width:340px;
+    margin-bottom:12px;
+  }
+  .items-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding-left:14px;
+    border-left:2px solid var(--line);
+  }
+  .item-row{
+    display:grid;
+    grid-template-columns:1.4fr .7fr .8fr 1.3fr auto;
+    gap:8px;
+    align-items:end;
+  }
+  .item-row .field label{font-size:9.5px;}
+  .group-dot{
+    display:inline-block;
+    width:9px;height:9px;
+    border-radius:50%;
+    margin-right:6px;
+    flex-shrink:0;
+  }
+  select.group-select{padding-left:6px;}
+  .dose-card-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:10px;
+  }
+  .no-items-hint{
+    color:var(--ink-soft);
+    font-size:12.5px;
+    padding:4px 0 2px;
+  }
+
+  .add-dose-btn{
+    margin-top:4px;
+  }
+
+  .actions-bar{
+    display:flex;
+    gap:10px;
+    margin-top:30px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  /* ---------- Modal / Shopping list ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(20,20,15,.45);
+    display:flex;align-items:center;justify-content:center;
+    z-index:50;
+  }
+  .modal{
+    background:#fff;
+    width:520px;
+    max-height:85vh;
+    overflow-y:auto;
+    border-radius:10px;
+    padding:28px 30px;
+  }
+  .modal h2{
+    font-family:Georgia,serif;
+    color:var(--forest-dark);
+    margin-top:0;
+  }
+  .shop-group{margin-bottom:18px;}
+  .shop-group-title{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+    font-weight:600;
+  }
+  .shop-item{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    padding:6px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:14.5px;
+  }
+  .shop-item .checkbox{
+    width:14px;height:14px;
+    border:1.5px solid var(--ink-soft);
+    border-radius:3px;
+    flex-shrink:0;
+    display:inline-block;
+  }
+  .shop-item .qty{font-weight:600;color:var(--forest-dark);min-width:70px;}
+  .shop-item .name{flex:1;}
+  .shop-item .from{color:var(--ink-soft);font-size:12px;}
+  .modal-close-row{
+    display:flex;justify-content:flex-end;gap:10px;margin-top:20px;
+  }
+  .print-title{
+    display:none;
+  }
+
+  @media print{
+    body *{visibility:hidden;}
+    .modal, .modal *{visibility:visible;}
+    .modal{
+      position:absolute;top:0;left:0;
+      width:100%;max-height:none;box-shadow:none;
+      padding:0;
+    }
+    .modal-close-row{display:none;}
+    .print-title{display:block;font-family:Georgia,serif;font-size:20px;margin-bottom:4px;color:#000;}
+    .print-sub{color:#444;font-size:12px;margin-bottom:18px;}
+  }
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--forest-dark);color:#fff;
+    padding:9px 16px;border-radius:7px;font-size:13px;
+    opacity:0;transition:opacity .25s ease;pointer-events:none;
+    z-index:80;
+  }
+  .toast.show{opacity:1;}
+  .loading{padding:40px;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading" id="loading">Lade Daten…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'pantry-sets-v1';
+
+const GROUPS = [
+  {key:'obst-gemuese', label:'Obst & Gemüse', color:'#5B7F4F'},
+  {key:'milchprodukte', label:'Milchprodukte & Eier', color:'#3E6E8E'},
+  {key:'fleisch-fisch', label:'Fleisch & Fisch', color:'#8C4234'},
+  {key:'getreide-backwaren', label:'Getreide, Reis & Backwaren', color:'#B9862E'},
+  {key:'huelsen-konserven', label:'Hülsenfrüchte & Konserven', color:'#6B5B95'},
+  {key:'gewuerze-zutaten', label:'Gewürze, Öle & Zutaten', color:'#C98A1E'},
+  {key:'tiefkuehl', label:'Tiefkühlware', color:'#4F7C82'},
+  {key:'sonstiges', label:'Sonstiges', color:'#7A756A'},
+];
+const EINHEITEN = ['g','kg','ml','l','Stück','Packung','Bund','Dose(n)'];
+
+function groupInfo(key){
+  return GROUPS.find(g=>g.key===key) || GROUPS[GROUPS.length-1];
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+let state = {
+  sets: [],
+  selectedSetId: null,
+};
+
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 350);
+}
+async function save(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state.sets), false);
+  }catch(e){
+    console.error('Speichern fehlgeschlagen', e);
+    showToast('Speichern fehlgeschlagen – Änderung ggf. nicht gesichert.');
+  }
+}
+async function load(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      state.sets = JSON.parse(res.value);
+    }
+  }catch(e){
+    // Key existiert vermutlich noch nicht
+    state.sets = [];
+  }
+  migrateData();
+}
+
+// Überführt alte Dosen (ein Lebensmittel direkt an der Dose) in das neue
+// Format mit mehreren Lebensmitteln (items[]) pro Dose.
+function migrateData(){
+  let changed = false;
+  state.sets.forEach(set=>{
+    (set.dosen||[]).forEach(d=>{
+      if(!Array.isArray(d.items)){
+        d.items = [];
+        if((d.lebensmittel||'').trim() !== ''){
+          d.items.push({
+            id: uid(),
+            lebensmittel: d.lebensmittel || '',
+            menge: d.menge || '',
+            einheit: d.einheit || 'Stück',
+            gruppe: d.gruppe || 'sonstiges',
+          });
+        }
+        delete d.lebensmittel;
+        delete d.menge;
+        delete d.einheit;
+        delete d.gruppe;
+        changed = true;
+      }
+    });
+  });
+  if(changed) scheduleSave();
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------------- Rendering ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="sidebar">
+      <div class="brand"><span class="eyebrow">Vorrat &amp; Ordnung</span>Vorratsdosen-Verwaltung</div>
+      <input class="search" id="searchInput" placeholder="Set suchen (Name oder Nr.)…" value="${escapeAttr(searchTerm)}">
+      <button class="btn btn-primary" id="newSetBtn">+ Neues Set anlegen</button>
+      <ul class="set-list" id="setList"></ul>
+      <div class="multi-select-bar" id="multiSelectBar"></div>
+      <div class="sidebar-footer">
+        ${state.sets.length} Set(s) gespeichert · <a id="resetLink">Alle Daten löschen</a>
+      </div>
+    </div>
+    <div class="main" id="main"></div>
+  `;
+  renderSetList();
+  renderMultiSelectBar();
+  renderMain();
+
+  document.getElementById('newSetBtn').onclick = createSet;
+  document.getElementById('searchInput').oninput = (e)=>{ searchTerm = e.target.value; renderSetList(); };
+  document.getElementById('resetLink').onclick = async ()=>{
+    if(confirm('Wirklich ALLE Sets und Dosen unwiderruflich löschen?')){
+      state.sets = [];
+      state.selectedSetId = null;
+      await save();
+      render();
+    }
+  };
+}
+
+let searchTerm = '';
+let selectedForShopping = new Set();
+
+function renderSetList(){
+  const list = document.getElementById('setList');
+  const term = searchTerm.trim().toLowerCase();
+  const filtered = state.sets.filter(s =>
+    !term || s.artikelnummer.toLowerCase().includes(term) || s.name.toLowerCase().includes(term)
+  );
+  if(filtered.length === 0){
+    list.innerHTML = `<li style="color:#c8cfc2;font-size:12.5px;padding:8px 4px;">Keine Sets gefunden.</li>`;
+    return;
+  }
+  list.innerHTML = filtered.map(s => `
+    <li class="set-item ${s.id===state.selectedSetId?'active':''}" data-id="${s.id}">
+      <input type="checkbox" class="set-checkbox" data-id="${s.id}" ${selectedForShopping.has(s.id)?'checked':''} title="Für gemeinsame Einkaufsliste markieren">
+      <span class="set-code">${escapeHtml(s.artikelnummer || '—')}</span>
+      <span class="set-name">${escapeHtml(s.name || 'Ohne Namen')}<small>${s.dosen.length} Dose(n)</small></span>
+    </li>
+  `).join('');
+  list.querySelectorAll('.set-item').forEach(el=>{
+    el.onclick = ()=>{ state.selectedSetId = el.dataset.id; render(); };
+  });
+  list.querySelectorAll('.set-checkbox').forEach(cb=>{
+    cb.onclick = (e)=>{
+      e.stopPropagation();
+      const id = cb.dataset.id;
+      if(cb.checked) selectedForShopping.add(id); else selectedForShopping.delete(id);
+      renderMultiSelectBar();
+    };
+  });
+}
+
+function renderMultiSelectBar(){
+  const bar = document.getElementById('multiSelectBar');
+  if(!bar) return;
+  // nur noch existierende Sets zählen
+  const validIds = new Set(state.sets.map(s=>s.id));
+  Array.from(selectedForShopping).forEach(id=>{ if(!validIds.has(id)) selectedForShopping.delete(id); });
+
+  const n = selectedForShopping.size;
+  if(n === 0){
+    bar.innerHTML = `<div class="msb-hint">Häkchen an mehreren Sets setzen, um eine gemeinsame Einkaufsliste zu erstellen.</div>`;
+    return;
+  }
+  bar.innerHTML = `
+    <div class="msb-row">
+      <span>${n} Set${n>1?'s':''} ausgewählt</span>
+      <a id="msbClear">Auswahl aufheben</a>
+    </div>
+    <button class="btn btn-primary" id="msbShopBtn" style="width:100%;">Einkaufsliste für Auswahl erstellen</button>
+  `;
+  document.getElementById('msbClear').onclick = ()=>{
+    selectedForShopping.clear();
+    renderSetList();
+    renderMultiSelectBar();
+  };
+  document.getElementById('msbShopBtn').onclick = ()=>{
+    const sets = state.sets.filter(s=>selectedForShopping.has(s.id));
+    openShoppingList(sets);
+  };
+}
+
+function renderMain(){
+  const main = document.getElementById('main');
+  const set = state.sets.find(s=>s.id===state.selectedSetId);
+  if(!set){
+    main.innerHTML = `
+      <div class="empty-state">
+        <h2>Noch kein Set ausgewählt</h2>
+        <p>Lege links ein neues Set an oder wähle eines aus der Liste, um Dosen und Befüllungen zu bearbeiten.</p>
+      </div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <div class="set-header">
+      <div class="set-title-block">
+        <div class="field">
+          <label>Bezeichnung des Sets</label>
+          <input id="setName" value="${escapeAttr(set.name)}" placeholder="z. B. Vorratsset Küche groß">
+        </div>
+        <div class="row-inline">
+          <div class="field">
+            <label>Artikelnummer</label>
+            <input id="setArtikel" value="${escapeAttr(set.artikelnummer)}" placeholder="z. B. VD-001">
+          </div>
+          <div class="field" style="flex:1;min-width:220px;">
+            <label>Beschreibung / Notiz</label>
+            <input id="setDesc" value="${escapeAttr(set.beschreibung||'')}" placeholder="optional">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" id="deleteSetBtn">Set löschen</button>
+    </div>
+
+    <h3 class="section-title">Dosen &amp; Befüllung</h3>
+    <div id="dosenList"></div>
+    <button class="btn btn-outline add-dose-btn" id="addDoseBtn">+ Dose hinzufügen</button>
+
+    <div class="actions-bar">
+      <span style="font-size:12.5px;color:var(--ink-soft);">Änderungen werden automatisch gespeichert.</span>
+      <button class="btn btn-primary" id="shopListBtn">Einkaufsliste erstellen</button>
+    </div>
+  `;
+
+  renderDosen(set);
+
+  document.getElementById('setName').oninput = (e)=>{ set.name = e.target.value; scheduleSave(); renderSetList(); };
+  document.getElementById('setArtikel').oninput = (e)=>{ set.artikelnummer = e.target.value; scheduleSave(); renderSetList(); };
+  document.getElementById('setDesc').oninput = (e)=>{ set.beschreibung = e.target.value; scheduleSave(); };
+  document.getElementById('deleteSetBtn').onclick = ()=>{
+    if(confirm(`Set "${set.name || set.artikelnummer}" wirklich löschen?`)){
+      state.sets = state.sets.filter(s=>s.id!==set.id);
+      state.selectedSetId = null;
+      save();
+      render();
+    }
+  };
+  document.getElementById('addDoseBtn').onclick = ()=>{
+    set.dosen.push({
+      id:uid(),
+      bezeichnung:'',
+      items:[{id:uid(), lebensmittel:'', menge:'', einheit:'Stück', gruppe:'sonstiges'}]
+    });
+    scheduleSave();
+    renderDosen(set);
+    renderSetList();
+  };
+  document.getElementById('shopListBtn').onclick = ()=>openShoppingList([set]);
+}
+
+function itemRowHtml(item){
+  return `
+    <div class="item-row" data-item-id="${item.id}">
+      <div class="field">
+        <label>Lebensmittel</label>
+        <input class="f-lebensmittel" value="${escapeAttr(item.lebensmittel)}" placeholder="z. B. Basmatireis">
+      </div>
+      <div class="field">
+        <label>Menge</label>
+        <input class="f-menge" type="text" value="${escapeAttr(item.menge)}" placeholder="500">
+      </div>
+      <div class="field">
+        <label>Einheit</label>
+        <select class="f-einheit">
+          ${EINHEITEN.map(e=>`<option value="${e}" ${e===item.einheit?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Lebensmittelgruppe</label>
+        <select class="f-gruppe group-select">
+          ${GROUPS.map(g=>`<option value="${g.key}" ${g.key===item.gruppe?'selected':''}>${g.label}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-danger btn-sm f-delete-item" title="Lebensmittel entfernen">✕</button>
+    </div>
+  `;
+}
+
+function renderDosen(set){
+  const container = document.getElementById('dosenList');
+  if(set.dosen.length===0){
+    container.innerHTML = `<p style="color:var(--ink-soft);font-size:13.5px;">Noch keine Dosen angelegt.</p>`;
+    return;
+  }
+  container.innerHTML = set.dosen.map(d => `
+    <div class="dose-card" data-id="${d.id}">
+      <div class="field dose-head-field">
+        <label>Bezeichnung der Dose</label>
+        <input class="f-bezeichnung" value="${escapeAttr(d.bezeichnung)}" placeholder="z. B. Dose rund groß">
+      </div>
+      <div class="items-list">
+        ${d.items.length ? d.items.map(item=>itemRowHtml(item)).join('') : `<div class="no-items-hint">Noch kein Lebensmittel in dieser Dose.</div>`}
+      </div>
+      <div class="dose-card-footer">
+        <button class="btn btn-outline btn-sm f-add-item">+ Lebensmittel hinzufügen</button>
+        <button class="btn btn-danger btn-sm f-delete-dose" title="Dose entfernen">Dose entfernen</button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.dose-card').forEach(card=>{
+    const doseId = card.dataset.id;
+    const dose = set.dosen.find(x=>x.id===doseId);
+
+    card.querySelector('.f-bezeichnung').oninput = e=>{ dose.bezeichnung=e.target.value; scheduleSave(); renderSetList();};
+
+    card.querySelectorAll('.item-row').forEach(row=>{
+      const itemId = row.dataset.itemId;
+      const item = dose.items.find(x=>x.id===itemId);
+      row.querySelector('.f-lebensmittel').oninput = e=>{ item.lebensmittel=e.target.value; scheduleSave(); };
+      row.querySelector('.f-menge').oninput = e=>{ item.menge=e.target.value; scheduleSave(); };
+      row.querySelector('.f-einheit').onchange = e=>{ item.einheit=e.target.value; scheduleSave(); };
+      row.querySelector('.f-gruppe').onchange = e=>{ item.gruppe=e.target.value; scheduleSave(); };
+      row.querySelector('.f-delete-item').onclick = ()=>{
+        dose.items = dose.items.filter(x=>x.id!==itemId);
+        scheduleSave();
+        renderDosen(set);
+      };
+    });
+
+    card.querySelector('.f-add-item').onclick = ()=>{
+      dose.items.push({id:uid(), lebensmittel:'', menge:'', einheit:'Stück', gruppe:'sonstiges'});
+      scheduleSave();
+      renderDosen(set);
+    };
+    card.querySelector('.f-delete-dose').onclick = ()=>{
+      set.dosen = set.dosen.filter(x=>x.id!==doseId);
+      scheduleSave();
+      renderDosen(set);
+      renderSetList();
+    };
+  });
+}
+
+function createSet(){
+  const s = {id:uid(), artikelnummer:'', name:'Neues Set', beschreibung:'', dosen:[]};
+  state.sets.unshift(s);
+  state.selectedSetId = s.id;
+  scheduleSave();
+  render();
+}
+
+/* ---------------- Einkaufsliste ---------------- */
+
+function openShoppingList(sets){
+  sets = sets.filter(Boolean);
+  if(sets.length===0) return;
+  const multi = sets.length > 1;
+
+  // Alle Lebensmittel aus allen Dosen aller übergebenen Sets einsammeln
+  const allItems = [];
+  sets.forEach(set=>{
+    (set.dosen||[]).forEach(d=>{
+      (d.items||[]).forEach(item=>{
+        if((item.lebensmittel||'').trim() !== ''){
+          allItems.push({
+            ...item,
+            doseName: d.bezeichnung||'',
+            setLabel: `${set.name||'Ohne Namen'} (${set.artikelnummer||'—'})`,
+          });
+        }
+      });
+    });
+  });
+  if(allItems.length===0){
+    showToast('Für die Auswahl sind noch keine Befüllungen zugeordnet.');
+    return;
+  }
+  const byGroup = {};
+  allItems.forEach(item=>{
+    const g = item.gruppe || 'sonstiges';
+    if(!byGroup[g]) byGroup[g]=[];
+    byGroup[g].push(item);
+  });
+  const orderedGroups = GROUPS.filter(g=>byGroup[g.key]);
+
+  const headerTitle = multi
+    ? `Einkaufsliste für ${sets.length} Sets`
+    : `Einkaufsliste – ${escapeHtml(sets[0].name||'')}`;
+  const headerSub = multi
+    ? sets.map(s => `${escapeHtml(s.name||'Ohne Namen')} (${escapeHtml(s.artikelnummer||'—')})`).join(' · ')
+    : `Artikelnummer: ${escapeHtml(sets[0].artikelnummer||'—')} · erstellt am ${new Date().toLocaleDateString('de-DE')}`;
+
+  const groupsHtml = orderedGroups.map(g => `
+    <div class="shop-group">
+      <div class="shop-group-title"><span class="group-dot" style="background:${g.color}"></span>${g.label}</div>
+      ${byGroup[g.key].sort((a,b)=>a.lebensmittel.localeCompare(b.lebensmittel,'de')).map(item => `
+        <div class="shop-item">
+          <span class="checkbox"></span>
+          <span class="qty">${escapeHtml(item.menge||'')} ${escapeHtml(item.einheit||'')}</span>
+          <span class="name">${escapeHtml(item.lebensmittel)}</span>
+          <span class="from">${multi ? escapeHtml(item.setLabel)+' · ' : ''}${escapeHtml(item.doseName||'')}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="print-title">${headerTitle}</div>
+      <div class="print-sub">${headerSub}${multi ? ' · erstellt am '+new Date().toLocaleDateString('de-DE') : ''}</div>
+      <h2 style="display:none;" class="screen-only-h2">Einkaufsliste</h2>
+      <p style="margin-top:-6px;color:var(--ink-soft);font-size:13px;" class="screen-note">
+        ${multi ? `${sets.length} Sets: ${headerSub}` : `Set <strong>${escapeHtml(sets[0].name||'')}</strong> (${escapeHtml(sets[0].artikelnummer||'—')})`}
+      </p>
+      ${groupsHtml}
+      <div class="modal-close-row">
+        <button class="btn btn-outline" id="closeModalBtn">Schließen</button>
+        <button class="btn btn-primary" id="printBtn">Drucken</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('.screen-only-h2').style.display='block';
+  document.getElementById('closeModalBtn').onclick = ()=>overlay.remove();
+  document.getElementById('printBtn').onclick = ()=>printShoppingList(headerTitle, headerSub, groupsHtml, multi);
+  overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+}
+
+// Öffnet die Liste in einem eigenen Browser-Tab und startet dort den Druckdialog.
+// Das ist nötig, weil window.print() innerhalb der eingebetteten Vorschau
+// (Sandbox-iFrame) vom Browser blockiert werden kann.
+function printShoppingList(headerTitle, headerSub, groupsHtml, multi){
+  const printWin = window.open('', '_blank');
+  if(!printWin){
+    showToast('Pop-up wurde blockiert. Bitte Pop-ups für diese Seite erlauben und erneut versuchen.');
+    return;
+  }
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Einkaufsliste</title>
+      <style>
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#1c1c1a;padding:32px;max-width:620px;margin:0 auto;}
+        h1{font-family:Georgia,"Iowan Old Style",serif;font-size:21px;margin:0 0 4px;}
+        .sub{color:#555;font-size:12.5px;margin-bottom:26px;}
+        .shop-group{margin-bottom:20px;}
+        .shop-group-title{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#555;margin-bottom:8px;font-weight:600;}
+        .group-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+        .shop-item{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px dashed #ccc;font-size:14.5px;}
+        .checkbox{width:14px;height:14px;border:1.5px solid #555;border-radius:3px;flex-shrink:0;display:inline-block;}
+        .qty{font-weight:600;min-width:70px;}
+        .name{flex:1;}
+        .from{color:#777;font-size:12px;}
+        @media print{ body{padding:0;} }
+      </style>
+    </head>
+    <body>
+      <h1>${headerTitle}</h1>
+      <div class="sub">${headerSub}${multi ? ' · erstellt am '+new Date().toLocaleDateString('de-DE') : ''}</div>
+      ${groupsHtml}
+      <script>
+        window.onload = function(){ setTimeout(function(){ window.print(); }, 200); };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+}
+
+/* ---------------- Utils ---------------- */
+function escapeHtml(str){
+  return String(str??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+/* ---------------- Init ---------------- */
+(async function init(){
+  await load();
+  if(state.sets.length && !state.selectedSetId){
+    state.selectedSetId = state.sets[0].id;
+  }
+  render();
+})();
+</script>
+</body>
+</html>
