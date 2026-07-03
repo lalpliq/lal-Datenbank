@@ -335,11 +335,18 @@
   }
 
   @media print{
+    html, body{height:auto;}
     body *{visibility:hidden;}
     .modal, .modal *{visibility:visible;}
+    .modal-overlay{
+      position:static;
+      background:none;
+      display:block;
+      height:auto;
+    }
     .modal{
-      position:absolute;top:0;left:0;
-      width:100%;max-height:none;box-shadow:none;
+      position:static;
+      width:100%;max-height:none;overflow:visible;box-shadow:none;
       padding:0;
     }
     .modal-close-row{display:none;}
