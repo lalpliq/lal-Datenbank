@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0046)file:///Users/larsweber/Downloads/index_1.html -->
+<!-- saved from url=(0046)file:///Users/larsweber/Downloads/index_2.html -->
 <html lang="de"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <title>Vorratsdosen-Verwaltung</title>
@@ -1115,18 +1115,29 @@ function saveNow(){
   save();
 }
 
-async function save(){
+// WICHTIG: Chrome (und andere Browser) begrenzen fetch-Requests mit
+// "keepalive:true" auf eine maximale Datengröße von ca. 64 KB. Wird das
+// überschritten, schlägt der Request SOFORT mit "TypeError: Failed to
+// fetch" fehl – auch im ganz normalen Betrieb, nicht nur beim Schließen
+// der Seite. Deshalb wird keepalive nur noch in dem einen Sonderfall
+// verwendet, in dem er wirklich nötig ist: kurz bevor der Tab/die Seite
+// geschlossen wird. Der normale, deutlich häufigere Speichervorgang läuft
+// immer OHNE dieses Limit.
+async function save(useKeepalive){
   const payload = JSON.stringify({ sets: state.sets });
   try{
-    const res = await fetch(JSONBIN_URL, {
+    const opts = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Master-Key': JSONBIN_MASTER_KEY,
       },
       body: payload,
-      keepalive: true, // erlaubt dem Request, auch beim Schließen des Tabs noch abzuschließen
-    });
+    };
+    // Sicherheitsnetz: keepalive nur setzen, wenn die Daten wirklich unter
+    // dem Browser-Limit liegen (sonst würde der Request sofort scheitern).
+    if(useKeepalive && new Blob([payload]).size < 60000) opts.keepalive = true;
+    const res = await fetch(JSONBIN_URL, opts);
     if(!res.ok) throw new Error('HTTP ' + res.status);
     pendingSave = false;
     setSaveState('saved');
@@ -1139,18 +1150,22 @@ async function save(){
 }
 
 // Falls die Seite geschlossen/verlassen wird, während noch ein Save
-// aussteht: sofort versuchen zu speichern (fetch mit keepalive läuft
-// im Hintergrund weiter, auch nachdem die Seite entladen wurde).
+// aussteht: sofort versuchen zu speichern. keepalive wird hier bewusst
+// NICHT gesetzt, wenn der Datensatz zu groß dafür ist – dann würde der
+// Request sonst ebenfalls sofort scheitern. Ein normaler (nicht-keepalive)
+// Request kann zwar theoretisch abgebrochen werden, wenn die Seite zu
+// schnell schließt, ist aber in der Praxis zuverlässiger als einer, der
+// von vornherein am Größenlimit scheitert.
 window.addEventListener('beforeunload', (e)=>{
   if(pendingSave){
     clearTimeout(saveTimer);
-    save();
+    save(true);
   }
 });
 window.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'hidden' && pendingSave){
     clearTimeout(saveTimer);
-    save();
+    save(true);
   }
 });
 
@@ -1559,9 +1574,20 @@ function openShoppingList(sets){
   `;
   document.body.appendChild(overlay);
   overlay.querySelector('.screen-only-h2').style.display='block';
-  document.getElementById('closeModalBtn').onclick = ()=>overlay.remove();
-  document.getElementById('printBtn').onclick = ()=>window.print();
-  overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+
+  // Sobald die Einkaufsliste geschlossen wird (egal ob über "Schließen",
+  // "Drucken" oder Klick daneben), gilt die Auswahl als erledigt und wird
+  // zurückgesetzt. So sind beim nächsten Aufruf der Seite nie noch alte
+  // Häkchen von einem vorherigen Mal gesetzt.
+  function closeAndResetSelection(){
+    overlay.remove();
+    selectedForShopping.clear();
+    renderSetList();
+    renderMultiSelectBar();
+  }
+  document.getElementById('closeModalBtn').onclick = closeAndResetSelection;
+  document.getElementById('printBtn').onclick = ()=>{ window.print(); closeAndResetSelection(); };
+  overlay.onclick = (e)=>{ if(e.target===overlay) closeAndResetSelection(); };
 }
 
 /* ---------------- Utils ---------------- */
@@ -1580,6 +1606,7 @@ function escapeAttr(str){ return escapeHtml(str); }
   render();
 })();
 </script>
+
 
 
 </body></html>
